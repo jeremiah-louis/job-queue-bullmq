@@ -1,0 +1,24 @@
+<Person1>Hey everyone, I wanted to share how I've been using AI tools in my daily workflow. It's been a game changer for me.</Person1>
+<Person2>That sounds interesting! What specific tools are you using?</Person2>
+<Person1>Well, I often take research and feed it into another AI system, which helps me create products I couldn't make before. It's like having an expert at my fingertips.</Person1>
+<Person2>That's impressive! What other tools do you use?</Person2>
+<Person1>There's the ChatGPT image theme that just came out. I made an entire presentation in just 30 minutes using it. I’m a procrastinator, but AI really helps me stay on track.</Person1>
+<Person2>Wow, that's fast! Do you use any other AI tools?</Person2>
+<Person1>Yes, I also use SadGPT for generating images and Cling to animate them. And then there's Claude, which I sometimes use like a therapist. It's surprisingly helpful!</Person1>
+<Person2>That's a unique approach! How do you feel about the therapy aspect?</Person2>
+<Person1>It's been super beneficial. Claude is very empathetic and a great writer, which helps with generating good content.</Person1>
+<Person2>Interesting! You mentioned something about 'vibe coding'—what's that about?</Person2>
+<Person1>Vibe coding is about inputting your ideas into an AI system effectively. I've been teaching people how to vibe code and growing that community. You can find me as King Butoshi on X and YouTube if you're interested!</Person1>
+<Person2>I'll definitely check that out! But I have a question—what if someone is already skilled in programming? How can they benefit from AI tools?</Person2>
+<Person1>Great question! I have a lot of programming skills too, and sometimes it feels like I don't get as much from AI tools. But I've found that documenting my code for AI systems helps a lot.</Person1>
+<Person2>That makes sense. How do you document your code?</Person2>
+<Person1>I document it for AI, detailing the tech stack, API usage, and security measures. This way, when I ask for new features, the AI understands the context and can help effectively.</Person1>
+<Person2>That's a smart approach! Have you faced any challenges with AI in coding?</Person2>
+<Person1>Definitely! Sometimes I struggle with writing documentation, which can complicate things. But I've learned that writing for AI also benefits human readers.</Person1>
+<Person2>That's a good insight! What about your collaboration with your co-founder?</Person2>
+<Person1>Working with my co-founder Rob has been enlightening. He has more experience, but I'm teaching him how to vibe code while he helps me with proper coding practices.</Person1>
+<Person2>Sounds like a great partnership! Any final thoughts on using AI in your workflow?</Person2>
+<Person1>Just remember that context is everything. If a prompt doesn't work, I restart and refine my instructions. It's usually a matter of providing better context.</Person1>
+<Person2>Thanks for sharing your experiences! It's fascinating to hear how you're integrating AI into your work.</Person2>
+<Person1>Absolutely! I'm excited to see how AI continues to evolve and help us in our projects.</Person1>
+<Person2>Me too! Let's keep the conversation going.</Person2>

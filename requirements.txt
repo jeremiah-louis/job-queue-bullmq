@@ -1,0 +1,3 @@
+podcastfy==0.4.1
+python-decouple==3.8
+wetro==0.1.21
