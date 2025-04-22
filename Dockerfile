@@ -33,8 +33,6 @@ RUN mkdir -p /app/.storage
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV GEMINI_API_KEY=${GEMINI_API_KEY}
-ENV OPENAI_API_KEY=${OPENAI_API_KEY}
 ENV STORAGE_DIR=/app/.storage
 
 # Expose port
