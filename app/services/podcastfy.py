@@ -1,7 +1,6 @@
 import os
 from typing import Dict, Optional
 from podcastfy.client import generate_podcast
-from decouple import config
 from fastapi import UploadFile
 from .file_upload import FileUploadService
 
@@ -9,8 +8,8 @@ class PodcastfyService:
     def __init__(self):
         self.file_upload_service = FileUploadService()
         # Set environment variables
-        os.environ["GEMINI_API_KEY"] = config("GEMINI_API_KEY")
-        os.environ["OPENAI_API_KEY"] = config("OPENAI_API_KEY")
+        os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
+        os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
         self.storage_dir = ".storage"
         os.makedirs(self.storage_dir, exist_ok=True)
 

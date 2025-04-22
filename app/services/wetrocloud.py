@@ -1,5 +1,4 @@
 from wetro import Wetrocloud
-from decouple import config
 from typing import List, Optional
 from uuid import uuid4
 import os
@@ -7,8 +6,8 @@ import os
 class WetrocloudService:
     def __init__(self):
         # Set environment variables
-        os.environ["WETRO_API_KEY"] = config("WETRO_API_KEY")
-        self.client = Wetrocloud(api_key=config("WETRO_API_KEY"))
+        os.environ["WETRO_API_KEY"] = os.getenv("WETRO_API_KEY")
+        self.client = Wetrocloud(api_key=os.getenv("WETRO_API_KEY"))
         
         # Default schema and rules
         self.default_schema = ["""<Person1>[Speaker 1's dialogue here]</Person1>
