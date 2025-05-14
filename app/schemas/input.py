@@ -3,15 +3,15 @@ from pydantic import BaseModel, HttpUrl
 from typing import Optional, Union
 
 class ResourceType(str, Enum):
-    PDF = "file"
+    FILE = "file"
     YOUTUBE = "youtube"
-    WEBSITE = "web"
+    WEB = "web"
 
 class BaseResourceInput(BaseModel):
     resource_type: ResourceType
 
 class PDFResourceInput(BaseResourceInput):
-    resource_type: ResourceType = ResourceType.PDF
+    resource_type: ResourceType = ResourceType.FILE
     file_url: str
 
 class URLResourceInput(BaseResourceInput):

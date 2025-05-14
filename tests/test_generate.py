@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from app.main import app
+from app.schemas.input import ResourceType
 import os
 import pytest
 from unittest.mock import patch, AsyncMock
@@ -31,7 +32,7 @@ def test_generate_pdf():
                 "/generate",
                 files={"file": ("test.pdf", f, "application/pdf")},
                 data={
-                    "resource_type": "pdf",
+                    "resource_type": ResourceType.FILE,
                     "collection_id": "test"
                 }
             )
@@ -49,7 +50,7 @@ def test_generate_youtube():
     response = client.post(
         "/generate",
         data={
-            "resource_type": "youtube",
+            "resource_type": ResourceType.YOUTUBE,
             "resource_data": "https://www.youtube.com/watch?v=test",
             "collection_id": "test"
         }
@@ -63,7 +64,7 @@ def test_generate_website():
     response = client.post(
         "/generate",
         data={
-            "resource_type": "website",
+            "resource_type": ResourceType.WEB,
             "resource_data": "https://example.com",
             "collection_id": "test"
         }
@@ -85,7 +86,7 @@ def test_invalid_file_type():
                 "/generate",
                 files={"file": ("test.txt", f, "text/plain")},
                 data={
-                    "resource_type": "pdf",
+                    "resource_type": ResourceType.FILE,
                     "collection_id": "test"
                 }
             )
@@ -99,7 +100,7 @@ def test_invalid_url():
     response = client.post(
         "/generate",
         data={
-            "resource_type": "website",
+            "resource_type": ResourceType.WEB,
             "resource_data": "not-a-url",
             "collection_id": "test"
         }

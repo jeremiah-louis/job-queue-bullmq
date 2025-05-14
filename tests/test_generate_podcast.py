@@ -5,6 +5,8 @@ from app.main import app
 import os
 from unittest.mock import AsyncMock, patch, MagicMock
 import httpx
+import io
+from app.schemas.input import ResourceType
 
 # Create test client fixture
 @pytest.fixture
@@ -31,7 +33,7 @@ def mock_website_url():
     return "https://example.com"
 
 @pytest.mark.asyncio
-async def test_generate_podcast_pdf_success(mock_pdf_file):
+async def test_generate_podcast_pdf_success(client, mock_pdf_file):
     with patch('app.services.file_upload.FileUploadService.upload_file') as mock_upload, \
          patch('app.services.wetrocloud.WetrocloudService.generate_transcript') as mock_transcript, \
          patch('podcastfy.client.generate_podcast') as mock_generate:
@@ -42,98 +44,70 @@ async def test_generate_podcast_pdf_success(mock_pdf_file):
         mock_generate.return_value = "test_audio.mp3"
         
         # Make request
-        response = await client.post(
-            "/generate-podcast",
-            files={"file": ("test.pdf", mock_pdf_file.file, "application/pdf")},
-            data={
-                "resource_type": "pdf",
-                "collection_id": "test-collection"
-            }
-        )
+        files = {"file": ("test.pdf", mock_pdf_file.file, "application/pdf")}
+        form_data = {"resource_type": ResourceType.FILE, "collection_id": "test-collection"}
+        response = client.post("/generate-podcast", files=files, data=form_data)
         
         # Verify response
-        assert response.status_code == 200
+        assert response.status_code == 202
         data = response.json()
-        assert data["success"] is True
-        assert "Test transcript content" in data["data"]["transcript"]
-        assert "audio_url" in data["data"]
-        
-        # Verify cleanup
-        assert not os.path.exists("test_audio.mp3")
-        assert not os.path.exists(os.path.join(".storage", "temp_transcript.txt"))
+        assert "job_id" in data
+        assert "status_url" in data
+        assert response.headers["Location"].startswith("/status/")
 
 @pytest.mark.asyncio
-async def test_generate_podcast_youtube_success(mock_youtube_url):
-    with patch('app.services.wetrocloud.WetrocloudService.generate_transcript') as mock_transcript, \
-         patch('podcastfy.client.generate_podcast') as mock_generate:
-        
-        # Setup mocks
-        mock_transcript.return_value = "Test transcript content"
-        mock_generate.return_value = "test_audio.mp3"
-        
-        # Make request
-        response = await client.post(
-            "/generate-podcast",
-            data={
-                "resource_type": "youtube",
-                "resource_data": mock_youtube_url,
-                "collection_id": "test-collection"
-            }
-        )
-        
-        # Verify response
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert "Test transcript content" in data["data"]["transcript"]
-        assert "audio_url" in data["data"]
-        
-        # Verify cleanup
-        assert not os.path.exists("test_audio.mp3")
-        assert not os.path.exists(os.path.join(".storage", "temp_transcript.txt"))
+async def test_generate_podcast_youtube_success(client, mock_youtube_url):
+    # Make request
+    form_data = {
+        "resource_type": ResourceType.YOUTUBE,
+        "resource_data": mock_youtube_url,
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", data=form_data)
+    
+    # Verify response
+    assert response.status_code == 202
+    data = response.json()
+    assert "job_id" in data
+    assert "status_url" in data
+    assert response.headers["Location"].startswith("/status/")
 
 @pytest.mark.asyncio
-async def test_generate_podcast_invalid_resource_type():
-    response = await client.post(
-        "/generate-podcast",
-        data={
-            "resource_type": "invalid",
-            "collection_id": "test-collection"
-        }
-    )
+async def test_generate_podcast_invalid_resource_type(client):
+    form_data = {
+        "resource_type": "invalid",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", data=form_data)
     assert response.status_code == 400
     assert "Invalid resource type" in response.json()["detail"]
 
 @pytest.mark.asyncio
-async def test_generate_podcast_missing_file():
-    response = await client.post(
-        "/generate-podcast",
-        data={
-            "resource_type": "pdf",
-            "collection_id": "test-collection"
-        }
-    )
+async def test_generate_podcast_missing_file(client):
+    form_data = {
+        "resource_type": "file",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", data=form_data)
     assert response.status_code == 400
     assert "File is required" in response.json()["detail"]
 
 @pytest.mark.asyncio
-async def test_generate_podcast_invalid_pdf(mock_pdf_file):
+async def test_generate_podcast_invalid_pdf(client, mock_pdf_file):
     # Change content type to invalid type
     mock_pdf_file.content_type = "text/plain"
     
-    response = await client.post(
-        "/generate-podcast",
-        files={"file": ("test.pdf", mock_pdf_file.file, "text/plain")},
-        data={
-            "resource_type": "pdf",
-            "collection_id": "test-collection"
-        }
-    )
+    files = {"file": ("test.pdf", mock_pdf_file.file, "text/plain")}
+    form_data = {
+        "resource_type": "file",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", files=files, data=form_data)
     assert response.status_code == 400
     assert "Only PDF files are supported" in response.json()["detail"]
 
 @pytest.mark.asyncio
-async def test_generate_podcast_transcript_error(mock_pdf_file):
+async def test_generate_podcast_transcript_error(client, mock_pdf_file):
     with patch('app.services.file_upload.FileUploadService.upload_file') as mock_upload, \
          patch('app.services.wetrocloud.WetrocloudService.generate_transcript') as mock_transcript:
         
@@ -141,19 +115,17 @@ async def test_generate_podcast_transcript_error(mock_pdf_file):
         mock_upload.return_value = {"url": "https://example.com/file.pdf"}
         mock_transcript.side_effect = Exception("Transcript generation failed")
         
-        response = await client.post(
-            "/generate-podcast",
-            files={"file": ("test.pdf", mock_pdf_file.file, "application/pdf")},
-            data={
-                "resource_type": "pdf",
-                "collection_id": "test-collection"
-            }
-        )
+        files = {"file": ("test.pdf", mock_pdf_file.file, "application/pdf")}
+        form_data = {
+            "resource_type": "file",
+            "collection_id": "test-collection"
+        }
+        response = client.post("/generate-podcast", files=files, data=form_data)
         assert response.status_code == 500
         assert "Transcript generation failed" in response.json()["detail"]
 
 @pytest.mark.asyncio
-async def test_generate_podcast_audio_error(mock_pdf_file):
+async def test_generate_podcast_audio_error(client, mock_pdf_file):
     with patch('app.services.file_upload.FileUploadService.upload_file') as mock_upload, \
          patch('app.services.wetrocloud.WetrocloudService.generate_transcript') as mock_transcript, \
          patch('podcastfy.client.generate_podcast') as mock_generate:
@@ -163,42 +135,118 @@ async def test_generate_podcast_audio_error(mock_pdf_file):
         mock_transcript.return_value = "Test transcript content"
         mock_generate.side_effect = Exception("Audio generation failed")
         
-        response = await client.post(
-            "/generate-podcast",
-            files={"file": ("test.pdf", mock_pdf_file.file, "application/pdf")},
-            data={
-                "resource_type": "pdf",
-                "collection_id": "test-collection"
-            }
-        )
+        files = {"file": ("test.pdf", mock_pdf_file.file, "application/pdf")}
+        form_data = {
+            "resource_type": "file",
+            "collection_id": "test-collection"
+        }
+        response = client.post("/generate-podcast", files=files, data=form_data)
         assert response.status_code == 500
         assert "Audio generation failed" in response.json()["detail"]
 
 @pytest.mark.asyncio
 async def test_generate_podcast_endpoint(client, mock_pdf_file):
-    # Mock the transcript generation
-    mock_transcript = "This is a test transcript"
-    mock_audio_url = "https://example.com/audio.mp3"
-    
-    with patch("app.main.generate_transcript", new_callable=AsyncMock) as mock_gen_transcript, \
-         patch("app.main.generate_audio", new_callable=AsyncMock) as mock_gen_audio:
-        
-        # Setup mocks
-        mock_gen_transcript.return_value = mock_transcript
-        mock_gen_audio.return_value = mock_audio_url
+    # Mock the task handler
+    with patch("app.tasks.podcast_tasks.PodcastTaskHandler.process_podcast") as mock_handler:
+        mock_handler.return_value = {"job_id": "test-job", "status_url": "/status/test-job"}
         
         # Make request
-        response = client.post(
-            "/generate-podcast",
-            files={"file": ("test.pdf", mock_pdf_file.file, "application/pdf")}
-        )
+        files = {"file": ("test.pdf", mock_pdf_file.file, "application/pdf")}
+        form_data = {
+            "resource_type": ResourceType.FILE,
+            "collection_id": "test-collection"
+        }
+        response = client.post("/generate-podcast", files=files, data=form_data)
         
         # Verify response
-        assert response.status_code == 200
+        assert response.status_code == 202
         data = response.json()
-        assert data["transcript"] == mock_transcript
-        assert data["audio_url"] == mock_audio_url
+        assert "job_id" in data
+        assert "status_url" in data
+        assert response.headers["Location"].startswith("/status/")
         
-        # Verify mocks were called
-        mock_gen_transcript.assert_called_once()
-        mock_gen_audio.assert_called_once_with(mock_transcript) 
+        # Verify mock was called
+        mock_handler.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_generate_podcast_pdf(client):
+    """Test PDF podcast generation request"""
+    # Create a mock PDF file
+    pdf_content = b"%PDF-1.5 mock pdf content"
+    files = {
+        "file": ("test.pdf", io.BytesIO(pdf_content), "application/pdf")
+    }
+    form_data = {
+        "resource_type": ResourceType.FILE,
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", files=files, data=form_data)
+    assert response.status_code == 202
+    assert "job_id" in response.json()
+    assert "status_url" in response.json()
+    assert response.headers["Location"].startswith("/status/")
+
+@pytest.mark.asyncio
+async def test_generate_podcast_youtube(client):
+    """Test YouTube podcast generation request"""
+    form_data = {
+        "resource_type": ResourceType.YOUTUBE,
+        "resource_data": "https://www.youtube.com/watch?v=test",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", data=form_data)
+    assert response.status_code == 202
+    assert "job_id" in response.json()
+    assert "status_url" in response.json()
+    assert response.headers["Location"].startswith("/status/")
+
+@pytest.mark.asyncio
+async def test_generate_podcast_website(client):
+    """Test website podcast generation request"""
+    form_data = {
+        "resource_type": "web",
+        "resource_data": "https://example.com/article",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", data=form_data)
+    assert response.status_code == 202
+    assert "job_id" in response.json()
+    assert "status_url" in response.json()
+    assert response.headers["Location"].startswith("/status/")
+
+@pytest.mark.asyncio
+async def test_generate_podcast_invalid_file_type(client):
+    """Test invalid file type"""
+    files = {
+        "file": ("test.txt", io.BytesIO(b"not a pdf"), "text/plain")
+    }
+    form_data = {
+        "resource_type": "file",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", files=files, data=form_data)
+    assert response.status_code == 400
+    assert "Only PDF files are supported" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_generate_podcast_missing_url(client):
+    """Test missing URL for YouTube/website"""
+    form_data = {
+        "resource_type": "youtube",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", data=form_data)
+    assert response.status_code == 400
+    assert "URL is required for YouTube/Web resources" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_generate_podcast_invalid_url(client):
+    """Test invalid URL format"""
+    form_data = {
+        "resource_type": "web",
+        "resource_data": "not-a-url",
+        "collection_id": "test-collection"
+    }
+    response = client.post("/generate-podcast", data=form_data)
+    assert response.status_code == 400
+    assert "Invalid URL format" in response.json()["detail"] 

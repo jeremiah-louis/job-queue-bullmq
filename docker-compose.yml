@@ -7,9 +7,36 @@ services:
       - .env
     volumes:
       - ./.storage:/app/.storage
+    depends_on:
+      - mongodb
+    networks:
+      - job-queue-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 30s
       retries: 3
-      start_period: 5s 
+      start_period: 5s
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - job-queue-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  job-queue-network:
+    driver: bridge 
